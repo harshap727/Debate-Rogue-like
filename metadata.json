@@ -1,0 +1,6 @@
+{
+  "name": "Debate Roguelike",
+  "description": "An adaptive AI debate training game where hidden AI opponents target your argument's specific weaknesses with dynamic challenges.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

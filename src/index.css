@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg-base: #0B0B0F;
+  --color-bg-panel: #13141C;
+  --color-border: #232530;
+  --color-text-base: #F4F4F6;
+  --color-text-muted: #8C8E9A;
+  
+  /* Semantic functional colors */
+  --color-damage: #FF4B3E;
+  --color-health: #2ED573;
+  --color-challenge: #FFC93C;
+  --color-student: #3B8EEA;
+}
+
+@layer base {
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background-color: var(--color-bg-base);
+    color: var(--color-text-base);
+    border-radius: 0;
+  }
+}
+
+.font-mono {
+  font-family: 'Space Mono', monospace;
+}
+
+/* Hard-edged HUD grid background */
+.hud-grid {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+/* Sharp HUD panel with zero border-radius */
+.hud-panel {
+  background-color: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 0px;
+}
+
+/* Flash animation on damage taken */
+@keyframes damageFlash {
+  0% { background-color: rgba(255, 75, 62, 0.35); }
+  100% { background-color: transparent; }
+}
+
+.animate-damage {
+  animation: damageFlash 0.5s ease-out;
+}
+
+/* Sharp popup scale-in for challenge badge */
+@keyframes scaleIn {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
