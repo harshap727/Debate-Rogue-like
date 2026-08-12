@@ -80,19 +80,19 @@ export const MatchStart: React.FC<MatchStartProps> = ({
         ) : (
           <div className="py-6 space-y-6">
             
-            {/* Hidden Silhouette Opponent Card */}
+            {/* Opponent Persona Card */}
             <div className="hud-panel border border-[#232530] p-6 max-w-md mx-auto bg-[#0B0B0F] relative group">
               
               <div className="w-20 h-20 mx-auto bg-[#13141C] border border-[#232530] flex items-center justify-center text-zinc-500 mb-3 relative">
                 <Skull className="w-10 h-10 text-[#FF4B3E]" />
-                <span className="absolute -top-2 -right-2 bg-[#FF4B3E] text-black font-mono text-[9px] font-bold px-1.5 py-0.5">
-                  LOCKED
+                <span className="absolute -top-2 -right-2 bg-[#3B8EEA] text-black font-mono text-[9px] font-bold px-1.5 py-0.5 uppercase">
+                  {opponent ? "ASSIGNED" : "LOCKED"}
                 </span>
               </div>
 
               <div className="space-y-2 font-mono">
                 <h3 className="font-mono text-lg font-extrabold text-[#F4F4F6] tracking-widest uppercase">
-                  OPPONENT: [ UNKNOWN PERSONA ]
+                  OPPONENT: <span className="text-[#3B8EEA]">{opponent?.opponent || "[ UNKNOWN PERSONA ]"}</span>
                 </h3>
 
                 {/* Difficulty Skull Rating */}
@@ -108,10 +108,13 @@ export const MatchStart: React.FC<MatchStartProps> = ({
                       }`}
                     />
                   ))}
+                  <span className="font-mono text-[11px] text-[#FF4B3E] font-bold ml-1">
+                    ({opponent?.difficulty || 3}/5)
+                  </span>
                 </div>
 
-                <p className="font-sans text-xs text-zinc-400 pt-2 border-t border-[#232530]">
-                  Adversary style and identity encrypted. Their specialized rhetorical attacks will reveal themselves during play.
+                <p className="font-sans text-xs text-zinc-300 pt-2 border-t border-[#232530] leading-relaxed">
+                  {opponent?.style || "Adversary style assigned. Their specialized rhetorical attacks will test your logic."}
                 </p>
               </div>
 

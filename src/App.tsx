@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   GameState,
   Opponent,
@@ -13,15 +13,53 @@ import { TopicSelect } from "./components/TopicSelect";
 import { MatchStart } from "./components/MatchStart";
 import { LiveDebate } from "./components/LiveDebate";
 import { FinalEvaluation } from "./components/FinalEvaluation";
+import { HistoryModal } from "./components/HistoryModal";
+import { auth, db, googleProvider, signInWithPopup, signOut, onAuthStateChanged } from "./lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 type Screen = "landing" | "topic_select" | "match_start" | "live_debate" | "final_eval";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("landing");
+  const [user, setUser] = useState<any | null>(null);
+  const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignIn = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (err: any) {
+      if (
+        err?.code === "auth/popup-closed-by-user" ||
+        err?.code === "auth/cancelled-popup-request" ||
+        err?.message?.includes("popup-closed-by-user")
+      ) {
+        console.log("Sign-in popup was closed by user before completing auth.");
+        return;
+      }
+      console.error("Google sign in error:", err);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error("Sign out error:", err);
+    }
+  };
 
   const [gameState, setGameState] = useState<GameState>({
     topic: "",
     position: "FOR",
+    opponentChoice: "AUTO_ASSIGN",
+    difficultyLevel: "NORMAL",
     round: 1,
     maxRounds: 4,
     argumentHealth: 100,
@@ -43,6 +81,8 @@ export default function App() {
     setGameState({
       topic: "",
       position: "FOR",
+      opponentChoice: "AUTO_ASSIGN",
+      difficultyLevel: "NORMAL",
       round: 1,
       maxRounds: 4,
       argumentHealth: 100,
@@ -58,33 +98,32 @@ export default function App() {
   };
 
   // 1. Topic Confirmed -> Fetch Opponent -> Match Start
-  const handleConfirmTopic = async (topic: string, position: "FOR" | "AGAINST") => {
-    setGameState((prev) => ({ ...prev, topic, position }));
+  const handleConfirmTopic = async (topic: string, position: "FOR" | "AGAINST", opponentChoice: string, difficultyLevel: string) => {
+    setGameState((prev) => ({ ...prev, topic, position, opponentChoice, difficultyLevel }));
     setScreen("match_start");
-    await fetchOpponent(topic, position);
+    await fetchOpponent(topic, position, opponentChoice);
   };
 
-  const fetchOpponent = async (topic: string, position: "FOR" | "AGAINST") => {
+  const fetchOpponent = async (topic: string, position: "FOR" | "AGAINST", opponentChoice: string) => {
     setIsLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/generate-opponent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, position }),
+        body: JSON.stringify({ topic, position, opponentChoice }),
       });
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data: Opponent = await res.json();
       setGameState((prev) => ({ ...prev, opponent: data }));
     } catch (err: any) {
       console.error("Opponent fetch error:", err);
-      // Fallback opponent
       setGameState((prev) => ({
         ...prev,
         opponent: {
-          opponent: "DEVIL'S ADVOCATE",
-          style: "Attacks every vulnerability indiscriminately using counterexamples.",
-          difficulty: 5,
+          opponent: "Harvey Goodman",
+          style: "Precise, calm, skeptical, intimidating. Probes definitions, burden of proof, and exceptions.",
+          difficulty: 4,
         },
       }));
     } finally {
@@ -150,6 +189,7 @@ export default function App() {
           userArgument,
           history: gameState.history,
           activeChallenge: gameState.activeChallenge,
+          difficultyLevel: gameState.difficultyLevel,
         }),
       });
 
@@ -164,7 +204,7 @@ export default function App() {
       const reason =
         attackData.reason || "Lacked specific empirical backing under cross-examination.";
 
-      // Step C: Deterministically Update Game Engine State
+      // Step C: Update State
       const newHealth = Math.max(0, gameState.argumentHealth - damageTaken);
       const nextChallenge = mapAttackTypeToChallenge(weaknessDetected);
 
@@ -177,10 +217,10 @@ export default function App() {
         score,
         damageTaken,
         reason,
+        scores: attackData.scores,
       };
 
       const updatedHistory = [...gameState.history, historyItem];
-
       const isFinished = newHealth <= 0 || gameState.round >= gameState.maxRounds;
 
       if (isFinished) {
@@ -231,39 +271,90 @@ export default function App() {
 
       if (!res.ok) throw new Error(`Final Eval error ${res.status}`);
       const data: FinalEvaluationResponse = await res.json();
+      
+      const passedRounds = stateToEval.history.filter((h) => h.score >= 60).length;
+      if (passedRounds < 2) {
+        data.survival = Math.min(45, data.survival);
+        data.biggestWeakness = `[DEFEAT: ONLY PASSED ${passedRounds}/2 REQUIRED ROUNDS]. ` + data.biggestWeakness;
+      }
+
       setEvaluation(data);
+
+      // Save to Firestore if user is logged in
+      if (user) {
+        try {
+          await addDoc(collection(db, "debates"), {
+            userId: user.uid,
+            topic: stateToEval.topic,
+            position: stateToEval.position,
+            opponent: stateToEval.opponent,
+            difficultyLevel: stateToEval.difficultyLevel || "NORMAL",
+            history: stateToEval.history,
+            finalHealth: stateToEval.argumentHealth,
+            evaluation: data,
+            createdAt: serverTimestamp(),
+          });
+        } catch (dbErr) {
+          console.error("Error saving debate to Firestore:", dbErr);
+        }
+      }
     } catch (err: any) {
       console.error("Error in final evaluation:", err);
-      // Fallback evaluation
-      setEvaluation({
-        survival: Math.round(stateToEval.argumentHealth * 0.8 + 20),
+      const passedRounds = stateToEval.history.filter((h) => h.score >= 60).length;
+      const survivalScore = passedRounds < 2 ? 35 : Math.round(stateToEval.argumentHealth * 0.8 + 20);
+      const fallbackEval: FinalEvaluationResponse = {
+        survival: survivalScore,
         logic: 75,
         evidence: 68,
         rebuttal: 72,
         adaptability: 82,
         strongestArgument: "Maintained structural consistency under direct pressure.",
-        biggestWeakness: "Relied on broad assumptions without immediate empirical backing.",
+        biggestWeakness: passedRounds < 2 
+          ? `[DEFEAT: ONLY PASSED ${passedRounds}/2 REQUIRED ROUNDS]. Relied on broad assumptions.`
+          : "Relied on broad assumptions without immediate empirical backing.",
         criticalAssumption: "Assumed implementation feasibility without citing operational metrics.",
-        recommendation:
-          "Lead with verified empirical evidence early and define your premises explicitly.",
-      });
+        recommendation: "Lead with verified empirical evidence early and define your premises explicitly.",
+      };
+      setEvaluation(fallbackEval);
+
+      if (user) {
+        try {
+          await addDoc(collection(db, "debates"), {
+            userId: user.uid,
+            topic: stateToEval.topic,
+            position: stateToEval.position,
+            opponent: stateToEval.opponent,
+            difficultyLevel: stateToEval.difficultyLevel || "NORMAL",
+            history: stateToEval.history,
+            finalHealth: stateToEval.argumentHealth,
+            evaluation: fallbackEval,
+            createdAt: serverTimestamp(),
+          });
+        } catch (dbErr) {
+          console.error("Error saving debate to Firestore:", dbErr);
+        }
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#090a0f] text-zinc-100 flex flex-col font-sans selection:bg-[#3B8EEA] selection:text-black">
+    <div className="min-h-screen bg-[#090a0f] text-zinc-100 flex flex-col md:flex-row font-sans selection:bg-[#3B8EEA] selection:text-black">
       
-      {/* Global Tactical HUD Navigation Bar & Scores */}
+      {/* Responsive Navigation Pane (Sidebar on PC, Top on Mobile/Tab) */}
       <NavigationBar
         currentScreen={screen}
         gameState={gameState}
         onNavigate={(newScreen) => setScreen(newScreen)}
         onReset={handleReset}
+        user={user}
+        onSignIn={handleSignIn}
+        onSignOut={handleSignOut}
+        onOpenHistory={() => setShowHistoryModal(true)}
       />
 
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col min-w-0">
         {screen === "landing" && (
           <LandingPage onStart={() => setScreen("topic_select")} />
         )}
@@ -282,7 +373,7 @@ export default function App() {
             opponent={gameState.opponent}
             isLoading={isLoading}
             error={error}
-            onRetry={() => fetchOpponent(gameState.topic, gameState.position)}
+            onRetry={() => fetchOpponent(gameState.topic, gameState.position, gameState.opponentChoice || "AUTO_ASSIGN")}
             onStartMatch={handleStartMatch}
           />
         )}
@@ -309,6 +400,13 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* History Cloud Archive Modal */}
+      <HistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        user={user}
+      />
 
     </div>
   );

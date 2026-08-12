@@ -36,7 +36,8 @@ export const FinalEvaluation: React.FC<FinalEvaluationProps> = ({
   const { topic, position, argumentHealth, opponent, history } = gameState;
 
   const totalRoundsCompleted = history.length;
-  const survivedAllRounds = argumentHealth > 0;
+  const passedRounds = history.filter((h) => h.score >= 60 && (h.scores?.evidence || 0) >= 60).length;
+  const isVictory = passedRounds >= 1 && argumentHealth > 0;
 
   const opponentName = opponent?.opponent || "DEVIL'S ADVOCATE";
   const opponentFlavor =
@@ -78,16 +79,16 @@ export const FinalEvaluation: React.FC<FinalEvaluationProps> = ({
         </div>
 
         <h1 className="font-mono text-3xl sm:text-4xl font-extrabold text-[#F4F4F6] tracking-tight uppercase">
-          {survivedAllRounds ? (
-            <span className="text-[#2ED573]">DEBATE SURVIVED</span>
+          {isVictory ? (
+            <span className="text-[#2ED573]">DEBATE WON // SURVIVED</span>
           ) : (
-            <span className="text-[#FF4B3E]">ARGUMENT COLLAPSED</span>
+            <span className="text-[#FF4B3E]">DEBATE DEFEATED // NO ROUND WON WITH EVIDENCE</span>
           )}
         </h1>
 
         <p className="font-mono text-xs text-zinc-400">
-          COMPLETED {totalRoundsCompleted} ROUNDS // FINAL HEALTH:{" "}
-          <strong className={survivedAllRounds ? "text-[#2ED573]" : "text-[#FF4B3E]"}>
+          PASSED ROUNDS WITH EVIDENCE: <strong className={passedRounds >= 1 ? "text-[#2ED573]" : "text-[#FF4B3E]"}>{passedRounds}/4 (Min 1 with proper evidence required)</strong> // FINAL HEALTH:{" "}
+          <strong className={argumentHealth > 0 ? "text-[#2ED573]" : "text-[#FF4B3E]"}>
             {argumentHealth}/100
           </strong>
         </p>

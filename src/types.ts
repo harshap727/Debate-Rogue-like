@@ -29,11 +29,21 @@ export interface HistoryItem {
   score: number;
   damageTaken: number;
   reason: string;
+  scores?: {
+    logic: number;
+    evidence: number;
+    relevance: number;
+    consistency: number;
+    rebuttal: number;
+    persuasiveness: number;
+  };
 }
 
 export interface GameState {
   topic: string;
   position: "FOR" | "AGAINST";
+  opponentChoice?: string;
+  difficultyLevel?: string;
   round: number;
   maxRounds: number;
   argumentHealth: number;
@@ -126,6 +136,11 @@ export const OPPONENT_FLAVORS: Record<string, string> = {
   ECONOMIST: "who relentlessly probed your hidden trade-offs, opportunity costs, and market incentives.",
   PHILOSOPHER: "who unraveled your foundational unexamined assumptions and moral premises.",
   "DEVIL'S ADVOCATE": "who attacked every single structural opening indiscriminately.",
+  "Harvey Goodman": "who spent the entire match hunting for precise definitions, logical gaps, and legal burdens.",
+  "Goldeen Sachs": "who relentlessly probed your hidden trade-offs, opportunity costs, and market incentives.",
+  "Zhang Kiyosaki": "who dismantled your empirical claims and exposed unverified statistics.",
+  "Karl Friedrich": "who unraveled your foundational unexamined assumptions and moral premises.",
+  "Conan Chandler": "who probed your unstated logical gaps, hidden assumptions, and alternative explanations.",
 };
 
 export interface AnalysisResponse {

@@ -1,11 +1,80 @@
 import React, { useState } from "react";
 import { CURATED_TOPICS, CuratedTopic } from "../types";
-import { Check, Edit3, ArrowRight, ShieldAlert, Sliders } from "lucide-react";
+import {
+  Check,
+  Edit3,
+  ArrowRight,
+  ShieldAlert,
+  Sliders,
+  Scale,
+  TrendingUp,
+  BarChart3,
+  HelpCircle,
+  Eye,
+  Cpu,
+} from "lucide-react";
 
 interface TopicSelectProps {
-  onConfirmTopic: (topic: string, position: "FOR" | "AGAINST") => void;
+  onConfirmTopic: (topic: string, position: "FOR" | "AGAINST", selectedOpponent: string, difficultyLevel: string) => void;
   onBack: () => void;
 }
+
+const OPPONENT_OPTIONS = [
+  {
+    id: "AUTO_ASSIGN",
+    name: "Dynamic Matchmaker",
+    role: "Ref's Recommendation",
+    difficulty: "Variable",
+    style: "The AI Referee evaluates your topic and assigns the opponent with the highest critical tension.",
+    icon: Cpu,
+    color: "#3B8EEA",
+  },
+  {
+    id: "Harvey Goodman",
+    name: "Harvey Goodman",
+    role: "Lawyer",
+    difficulty: "★★★★☆",
+    style: "Attacks definitions, precision, logical contradictions, and burden of proof.",
+    icon: Scale,
+    color: "#E2BA49",
+  },
+  {
+    id: "Goldeen Sachs",
+    name: "Goldeen Sachs",
+    role: "Economist",
+    difficulty: "★★★★☆",
+    style: "Probes opportunity costs, economic incentives, resource allocation, and trade-offs.",
+    icon: TrendingUp,
+    color: "#2ED573",
+  },
+  {
+    id: "Zhang Kiyosaki",
+    name: "Zhang Kiyosaki",
+    role: "Data Analyst",
+    difficulty: "★★★☆☆",
+    style: "Targets statistical sample sizes, methodology bias, metrics, and correlation vs causation.",
+    icon: BarChart3,
+    color: "#FF9F43",
+  },
+  {
+    id: "Karl Friedrich",
+    name: "Karl Friedrich",
+    role: "Philosopher",
+    difficulty: "★★★★★",
+    style: "Probes moral consistency, universal rules, first principles, and unstated assumptions.",
+    icon: HelpCircle,
+    color: "#A55EEA",
+  },
+  {
+    id: "Conan Chandler",
+    name: "Conan Chandler",
+    role: "Detective",
+    difficulty: "★★★★★",
+    style: "Probes unstated logical gaps, alternative explanations, and unexplained variables.",
+    icon: Eye,
+    color: "#FF4B3E",
+  },
+];
 
 export const TopicSelect: React.FC<TopicSelectProps> = ({
   onConfirmTopic,
@@ -15,6 +84,8 @@ export const TopicSelect: React.FC<TopicSelectProps> = ({
   const [customTopic, setCustomTopic] = useState<string>("");
   const [useCustomTopic, setUseCustomTopic] = useState<boolean>(false);
   const [position, setPosition] = useState<"FOR" | "AGAINST">("FOR");
+  const [opponentChoice, setOpponentChoice] = useState<string>("AUTO_ASSIGN");
+  const [difficultyLevel, setDifficultyLevel] = useState<string>("NORMAL");
 
   const handleSelectCurated = (topic: CuratedTopic) => {
     setSelectedTopicId(topic.id);
@@ -39,7 +110,7 @@ export const TopicSelect: React.FC<TopicSelectProps> = ({
   const handleProceed = () => {
     const finalTopic = getEffectiveTopic();
     if (!finalTopic) return;
-    onConfirmTopic(finalTopic, position);
+    onConfirmTopic(finalTopic, position, opponentChoice, difficultyLevel);
   };
 
   return (
@@ -52,7 +123,7 @@ export const TopicSelect: React.FC<TopicSelectProps> = ({
             STEP 01 // DEBATE PARAMETERS
           </span>
           <h2 className="font-mono text-2xl sm:text-3xl font-bold text-[#F4F4F6] uppercase mt-1">
-            SELECT TOPIC & POSITION
+            SELECT TOPIC & OPPONENT
           </h2>
         </div>
         <button
@@ -99,7 +170,7 @@ export const TopicSelect: React.FC<TopicSelectProps> = ({
                   )}
                 </div>
 
-                <h3 className="font-bold text-sm text-[#F4F4F6] mb-1 leading-snug">
+                <h3 className="font-bold text-sm text-[#F4F4F6] mb-1 leading-snug font-sans">
                   {topic.title}
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed font-sans">
@@ -177,13 +248,116 @@ export const TopicSelect: React.FC<TopicSelectProps> = ({
         </div>
       </div>
 
+      {/* Opponent Selection Section */}
+      <div className="hud-panel p-5 border border-[#232530] space-y-4 font-mono">
+        <div>
+          <label className="font-mono text-xs text-[#F4F4F6] font-bold uppercase tracking-wider block mb-1">
+            SELECT YOUR DEBATE OPPONENT
+          </label>
+          <p className="text-xs text-zinc-400 font-sans">
+            Each character targets a completely different dimension of critical reasoning and logical rigor.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {OPPONENT_OPTIONS.map((opt) => {
+            const isSelected = opponentChoice === opt.id;
+            const IconComponent = opt.icon;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setOpponentChoice(opt.id)}
+                className={`p-4 text-left border transition-all cursor-pointer flex flex-col justify-between h-44 relative group ${
+                  isSelected
+                    ? "bg-[#13141C] border-[#3B8EEA]"
+                    : "bg-[#0B0B0F] border-[#232530] hover:border-zinc-500"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div
+                      className="p-1.5 rounded-sm flex items-center justify-center"
+                      style={{ backgroundColor: `${opt.color}15`, color: opt.color }}
+                    >
+                      <IconComponent className="w-5 h-5" />
+                    </div>
+                    <span className="font-mono text-[10px] uppercase text-zinc-400">
+                      DIFF: <span style={{ color: opt.color }}>{opt.difficulty}</span>
+                    </span>
+                  </div>
+
+                  <h4 className="font-mono text-sm font-bold text-[#F4F4F6] leading-tight">
+                    {opt.name}
+                  </h4>
+                  <p className="font-mono text-[10px] text-zinc-400 uppercase tracking-wider mt-0.5">
+                    {opt.role}
+                  </p>
+                  <p className="text-xs text-zinc-400 font-sans leading-snug mt-2 line-clamp-3">
+                    {opt.style}
+                  </p>
+                </div>
+
+                {isSelected && (
+                  <div className="absolute right-2 bottom-2 w-4 h-4 bg-[#3B8EEA] flex items-center justify-center text-black">
+                    <Check className="w-3 h-3 stroke-[3]" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Difficulty Level Selection Section */}
+      <div className="hud-panel p-5 border border-[#232530] space-y-4 font-mono">
+        <div>
+          <label className="font-mono text-xs text-[#F4F4F6] font-bold uppercase tracking-wider block mb-1">
+            SELECT DEBATE DIFFICULTY TIER
+          </label>
+          <p className="text-xs text-zinc-400 font-sans">
+            Controls damage multipliers and AI attack rigor during cross-examination.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
+          {[
+            { id: "EASY", name: "EASY", desc: "0.7x Damage", color: "#2ED573" },
+            { id: "NORMAL", name: "NORMAL", desc: "1.0x Standard", color: "#3B8EEA" },
+            { id: "HARD", name: "HARD", desc: "1.3x Relentless", color: "#FFC93C" },
+            { id: "EXPERT", name: "EXPERT", desc: "1.6x Brutal", color: "#FF4B3E" },
+          ].map((lvl) => {
+            const isSelected = difficultyLevel === lvl.id;
+            return (
+              <button
+                key={lvl.id}
+                type="button"
+                onClick={() => setDifficultyLevel(lvl.id)}
+                className={`p-3 text-center border transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                  isSelected
+                    ? "bg-[#13141C] border-[#3B8EEA] text-[#F4F4F6]"
+                    : "bg-[#0B0B0F] border-[#232530] text-zinc-400 hover:border-zinc-500"
+                }`}
+              >
+                <span className="font-bold text-xs" style={{ color: lvl.color }}>
+                  [{lvl.name}]
+                </span>
+                <span className="text-[10px] text-zinc-400 uppercase font-sans">
+                  {lvl.desc}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Confirm CTA */}
       <div className="pt-2 font-mono">
         <button
           onClick={handleProceed}
           className="w-full py-4 bg-[#3B8EEA] hover:bg-[#F4F4F6] text-black font-mono font-bold text-base uppercase tracking-wider transition-colors flex items-center justify-center gap-3 border border-[#3B8EEA] hover:border-[#F4F4F6] cursor-pointer"
         >
-          <span>LOCK IN TOPIC & ASSIGN OPPONENT</span>
+          <span>LOCK IN PARAMETERS & DEPLOY ARENA</span>
           <ArrowRight className="w-5 h-5 stroke-[2.5]" />
         </button>
       </div>
@@ -191,3 +365,4 @@ export const TopicSelect: React.FC<TopicSelectProps> = ({
     </div>
   );
 };
+

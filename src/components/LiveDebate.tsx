@@ -105,13 +105,12 @@ export const LiveDebate: React.FC<LiveDebateProps> = ({
     return matches.length;
   };
 
-  const sentenceCount = countSentences(inputArgument);
-  const isSentenceCapExceeded =
-    activeChallenge === "THREE_SENTENCES" && sentenceCount > 3;
+  const charCount = inputArgument.length;
+  const isCharLimitExceeded = charCount > 500;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputArgument.trim() || isLoading) return;
+    if (!inputArgument.trim() || isLoading || charCount > 500) return;
     if (isListening && recognitionRef.current) {
       recognitionRef.current.stop();
       setIsListening(false);
@@ -259,21 +258,10 @@ export const LiveDebate: React.FC<LiveDebateProps> = ({
         <div className="flex items-center justify-between gap-2 font-mono text-xs">
           <div className="flex items-center gap-2 text-zinc-400">
             <span className="text-[#3B8EEA] font-bold">ROUND {round} ARGUMENT INPUT</span>
-            {activeChallenge === "THREE_SENTENCES" && (
-              <span
-                className={`text-[10px] px-2 py-0.5 border ${
-                  isSentenceCapExceeded
-                    ? "bg-[#FF4B3E]/10 border-[#FF4B3E] text-[#FF4B3E] font-bold"
-                    : "bg-[#13141C] border-[#232530] text-zinc-300"
-                }`}
-              >
-                SENTENCES: {sentenceCount} / 3 MAX
-              </span>
-            )}
           </div>
 
-          <div className="text-[11px] text-zinc-400">
-            {inputArgument.length} CHARS
+          <div className={`text-[11px] font-bold ${charCount > 500 ? "text-[#FF4B3E]" : "text-zinc-400"}`}>
+            {charCount} / 500 CHARS MAX
           </div>
         </div>
 
@@ -281,16 +269,17 @@ export const LiveDebate: React.FC<LiveDebateProps> = ({
         <div className="relative">
           <textarea
             rows={3}
+            maxLength={500}
             value={inputArgument}
             onChange={(e) => setInputArgument(e.target.value)}
             disabled={isLoading}
             placeholder={
               activeChallengeInfo
                 ? `Write your argument following active challenge rule (${activeChallengeInfo.title})...`
-                : "Type your argument thesis and evidence clearly..."
+                : "Type your argument thesis and evidence clearly (max 500 chars)..."
             }
             className={`w-full bg-[#0B0B0F] border p-3.5 text-sm font-sans text-[#F4F4F6] focus:outline-none transition-colors resize-none ${
-              isSentenceCapExceeded
+              charCount > 500
                 ? "border-[#FF4B3E] focus:border-[#FF4B3E]"
                 : "border-[#232530] focus:border-[#3B8EEA]"
             }`}
