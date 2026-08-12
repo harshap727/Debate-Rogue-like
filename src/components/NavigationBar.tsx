@@ -68,10 +68,10 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
   return (
     <>
       {/* Responsive Navigation Pane: Side on PC (md:), Top on mobile and tablet */}
-      <header className="w-full md:w-64 bg-[#13141C] md:min-h-screen md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-r border-[#232530] text-[#F4F4F6] p-4 font-mono select-none flex flex-col justify-between z-45 shrink-0">
+      <header className="w-full md:w-64 bg-[#13141C] md:min-h-screen md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-r border-[#232530] text-[#F4F4F6] p-3 md:p-4 font-mono select-none flex flex-col justify-between z-45 shrink-0 overflow-x-auto md:overflow-x-visible">
         
         {/* Top / Main section */}
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6 min-w-max md:min-w-0">
           {/* Logo & Section Identity */}
           <div className="flex items-center justify-between md:justify-start gap-3">
             <div 
